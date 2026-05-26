@@ -216,9 +216,9 @@ async def main():
         GET_TICK = os.getenv("GET_TICK")
 
         #if GET_TICK.lower() == "true":
-        await asyncio.gather(*candle_tasks, *ticker_tasks)
+        #await asyncio.gather(*candle_tasks, *ticker_tasks)
         #else:
-            #await asyncio.gather(*candle_tasks)
+        await asyncio.gather(*candle_tasks)
         
         #=======================================================================
     finally:

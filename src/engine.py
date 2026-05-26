@@ -74,8 +74,6 @@ def run_engine(candle_body: Dict[str, Any]):
     sm.exchange = exchange
     sm.close_time = close_time
 
-    sm.Candle_Count_After_HTF_Reset += 1
-
     logger.info(f"Candle received: {sm.symbol}, {sm.timeframe}, {pm.format_time_simple(str(sm.close_time))}, {close}, Candle_counter: {sm.Candle_Count_After_HTF_Reset}")
 
     # Append candle to the list =============================================================================================
@@ -83,6 +81,8 @@ def run_engine(candle_body: Dict[str, Any]):
     buffers.CANDLE_BUFFER.append(key, candle_body)
     #========================================================================================================================
     
+    sm.Candle_Count_After_HTF_Reset += 1
+
     #Manage HTF
     sm.manage_HTF()
 
@@ -138,9 +138,25 @@ def run_engine(candle_body: Dict[str, Any]):
             target_pips = abs(close - Decimal(TP)) * 10000
             sl_pips = abs(close - Decimal(SL)) * 10000
             
-            order_units = ps.DEFAULT_ORDER_UNITS
+
+            #------------------------------------------------
+            # Inputs
+            account_balance = 100000
+            risk_amount = 1000          # or: account_balance * 0.01
+            stop_loss_pips = sl_pips          # from your strategy (e.g., 25)
+            leverage = 20
+            pip_value_per_lot = 10      # GBPUSD fixed
+
+            # Calculate lot size
+            lot_size = risk_amount / (stop_loss_pips * pip_value_per_lot)
+
+            # Calculate required margin
+            required_margin = lot_size * 100000 / leverage
+            #order_units = ps.DEFAULT_ORDER_UNITS
+            order_units = int(lot_size * 100000)  # Convert lot size to units (e.g., 0.5 lots = 50,000 units)
+            #------------------------------------------------
             #profit_est = (order_units * target_pips / Decimal("10000"))
-            profit_est = target_pips * Decimal(1.5) * (order_units / Decimal("1000"))
+            profit_est = risk_amount * Decimal(1.5)
             logger.info(f"Valid signal detected! side={side}, target_pips={target_pips:.1f}, sl_pips={sl_pips:.1f}, profit_est={profit_est:.2f}, TP={TP}, SL={SL}")
 
 
@@ -160,8 +176,8 @@ def run_engine(candle_body: Dict[str, Any]):
                     symbol=instrument,
                     side=side,
                     units=order_units,
-                    tp_price=None,
-                    sl_price=None,
+                    tp_price=TP,
+                    sl_price=SL,
                     client_order_id=client_order_id,
                 )
             except requests.HTTPError as e:
@@ -218,12 +234,13 @@ def run_engine(candle_body: Dict[str, Any]):
                         msg = (
                             "⚡ Broker Order\n"
                             f"Symbol:         {symbol}\n"
-                            f"Side:           {side.upper()}\n"
-                            f"Entry price:     {pm.truncate(close,5)}\n"
-                            f"Target price:   {pm.truncate(TP,5)}\n"
-                            f"SL_Price:        {pm.fmt(SL,5)}\n"
-                            f"Actual TP Pips: {pm.truncate(actual_target_pips,2) if actual_target_pips is not None else 'N/A'}\n"
-                            f"Est. Profit:    ${pm.truncate(profit_est,2)}\n\n"
+                            f"Side:                 {side.upper()}\n"
+                            f"Entry price:        {pm.truncate(close,5)}\n"
+                            f"Target price:      {pm.truncate(TP,5)}\n"
+                            f"SL_Price:            {pm.fmt(SL,5)}\n"
+                            f"Actual TP Pips:   {pm.truncate(actual_target_pips,2) if actual_target_pips is not None else 'N/A'}\n"
+                            f"Est. Profit:       ${pm.truncate(profit_est,2)}\n"
+                            f"required_margin:         ${pm.truncate(required_margin,2)}\n\n"
                             f"Event time:     {close_time.strftime('%Y-%m-%d %H:%M')}\n\n"
                         )
                         notify_telegram(msg, ChatType.INFO)
@@ -256,17 +273,17 @@ def run_engine(candle_body: Dict[str, Any]):
                 True,                    # order_sent
 
 
-                close_time,   # order_sent_time
-                -1,   # broker_order_id
-                -1,   # broker_trade_id
-                order_units,             # order_units
-                close_time, # actual_entry_time
-                close, # actual_entry_price
+                order_info.order_sent_time,   # order_sent_time
+                order_info.broker_order_id,   # broker_order_id
+                order_info.broker_trade_id,   # broker_trade_id
+                order_info.units,             # order_units
+                order_info.actual_entry_time, # actual_entry_time
+                order_info.actual_entry_price,# actual_entry_price
                 TP,   # actual_tp_price
                 actual_target_pips,           # actual_target_pips
-                "open",            # order_status
-                0,   # exec_latency_ms
-                -1,          # lastTransactionID from OANDA response
+                order_info.status,            # order_status
+                order_info.exec_latency_ms,   # exec_latency_ms
+                order_info.lastTransactionID,          # lastTransactionID from OANDA response
             ))
             _insert_signals(batch_rows_signals)
 
