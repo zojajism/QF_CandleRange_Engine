@@ -256,6 +256,14 @@ class BrokerClient:
                     return transaction, transaction_id
 
         return {}, None
+    
+    def get_account_summary(self) -> Dict[str, Any]:
+        """
+        Fetch account summary (balance, margin, NAV, etc.).
+        """
+        path = f"/accounts/{self.config.account_id}/summary"
+        return self._get(path)
+    
 # ----------------------------------------------------------------------
 # Helper: build client from environment variables
 # ----------------------------------------------------------------------

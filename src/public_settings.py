@@ -6,7 +6,7 @@ symbol = None
 
 def load_settings_from_db():
     settings = get_public_settings()
-    global ATR_LEN, EMA_FAST_LEN, EMA_SLOW_LEN, K_mult, RR_ratio, max_bars_since_trade, M_Slope, K_Slope, S_th, N_Trend_Candle, ExecuteID, DEFAULT_ORDER_UNITS, ignore_slope, ignore_session_ckeck, Candle_Limit_offset, New_Candle_Follow_Price_pct, min_pip_for_TSL, ignore_follow_price, Start_Date_Time, End_Date_Time, SL_ATR_K
+    global ATR_LEN, EMA_FAST_LEN, EMA_SLOW_LEN, K_mult, RR_ratio, max_bars_since_trade, M_Slope, K_Slope, S_th, N_Trend_Candle, ExecuteID, DEFAULT_ORDER_UNITS, ignore_slope, ignore_session_ckeck, Candle_Limit_offset, New_Candle_Follow_Price_pct, min_pip_for_TSL, ignore_follow_price, Start_Date_Time, End_Date_Time, SL_ATR_K, Risk_Cap_Dollar, Risk_Percent
     ATR_LEN = int(settings.get('ATR_LEN', 14))
     EMA_FAST_LEN = int(settings.get('EMA_FAST_LEN', 20))
     EMA_SLOW_LEN = int(settings.get('EMA_SLOW_LEN', 50))
@@ -33,3 +33,6 @@ def load_settings_from_db():
     min_pip_for_TSL = Decimal(settings.get('min_pip_for_TSL', 6.0))
     ignore_follow_price = int(settings.get('ignore_follow_price', 0))
     SL_ATR_K = Decimal(settings.get('SL_ATR_K', 1.5))
+
+    Risk_Cap_Dollar = Decimal(settings.get('Risk_Cap_Dollar', 100))
+    Risk_Percent = Decimal(settings.get('Risk_Percent', 1))

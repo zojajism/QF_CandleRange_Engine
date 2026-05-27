@@ -28,7 +28,7 @@ from telegram_notifier import (
 from orders.order_executor import send_market_order, OrderExecutionResult, update_account_summary
 from signals import open_signal_registry
 from db_general import get_pg_conn
-
+from orders.order_executor import get_account_summary, print_account_summary
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +74,8 @@ def run_engine(candle_body: Dict[str, Any]):
     sm.exchange = exchange
     sm.close_time = close_time
 
+    sm.Candle_Count_After_HTF_Reset += 1
+
     logger.info(f"Candle received: {sm.symbol}, {sm.timeframe}, {pm.format_time_simple(str(sm.close_time))}, {close}, Candle_counter: {sm.Candle_Count_After_HTF_Reset}")
 
     # Append candle to the list =============================================================================================
@@ -81,8 +83,6 @@ def run_engine(candle_body: Dict[str, Any]):
     buffers.CANDLE_BUFFER.append(key, candle_body)
     #========================================================================================================================
     
-    sm.Candle_Count_After_HTF_Reset += 1
-
     #Manage HTF
     sm.manage_HTF()
 
@@ -137,27 +137,39 @@ def run_engine(candle_body: Dict[str, Any]):
         if valid_signal:
             target_pips = abs(close - Decimal(TP)) * 10000
             sl_pips = abs(close - Decimal(SL)) * 10000
-            
-
             #------------------------------------------------
-            # Inputs
-            account_balance = 100000
-            risk_amount = 1000          # or: account_balance * 0.01
-            stop_loss_pips = sl_pips          # from your strategy (e.g., 25)
-            leverage = 20
-            pip_value_per_lot = 10      # GBPUSD fixed
+            if sl_pips <= 0:
+                logger.warning("Invalid sl_pips=%s. Skip order sizing.", sl_pips)
+                return
+            account_summary = get_account_summary()
 
-            # Calculate lot size
-            lot_size = risk_amount / (stop_loss_pips * pip_value_per_lot)
+            result = pm.calculate_single_position_size(
+                    sl_pips=sl_pips,
+                    position_price=close,
+                    account_balance=account_summary.get("balance", 10000),
+                    available_margine=account_summary.get("marginAvailable", 10000),
+                    risk_percent=ps.Risk_Percent,
+                    risk_cap_dollar=ps.Risk_Cap_Dollar,
+                    )
+            trade_skipped = result["trade_skipped"]
+            order_units = result["postion_size"]
+            required_margin = result["margine_required"]
+            actual_risk_amount = result["risk_value"]
+            profit_est = result["tp_value"]
 
-            # Calculate required margin
-            required_margin = lot_size * 100000 / leverage
-            #order_units = ps.DEFAULT_ORDER_UNITS
-            order_units = int(lot_size * 100000)  # Convert lot size to units (e.g., 0.5 lots = 50,000 units)
+            if order_units <= 0 or trade_skipped:
+                logger.warning(
+                    f"Signal skipped! side={side}, target_pips={target_pips:.1f}, sl_pips={sl_pips:.1f}, "
+                    f"order_units={order_units}, required_margin={required_margin:.2f}, risk_est={actual_risk_amount:.2f}, "
+                    f"profit_est={profit_est:.2f}, TP={TP}, SL={SL}, available_margin={account_summary.get('marginAvailable', 10000):.2f}"
+                )
+                return
             #------------------------------------------------
-            #profit_est = (order_units * target_pips / Decimal("10000"))
-            profit_est = risk_amount * Decimal(1.5)
-            logger.info(f"Valid signal detected! side={side}, target_pips={target_pips:.1f}, sl_pips={sl_pips:.1f}, profit_est={profit_est:.2f}, TP={TP}, SL={SL}")
+            logger.info(
+                f"Valid signal detected! side={side}, target_pips={target_pips:.1f}, sl_pips={sl_pips:.1f}, "
+                f"order_units={order_units}, required_margin={required_margin:.2f}, risk_est={actual_risk_amount:.2f}, "
+                f"profit_est={profit_est:.2f}, TP={TP}, SL={SL}, available_margin={account_summary.get('marginAvailable', 10000):.2f}"
+            )
 
 
             try:
@@ -296,6 +308,8 @@ def run_engine(candle_body: Dict[str, Any]):
     # Sync broker orders to update order status and account summary
     sync_broker_orders(symbol)
     
+    print_account_summary()
+
 
     #open_count = sm.open_sig_registry.get_count() 
     #logger.info(json.dumps({ "EventCode": 0, "Message": f"open_sig_registry initialized. open_signals={open_count}" }) )

@@ -622,6 +622,13 @@ def sync_broker_orders(symbol: str) -> None:
 # Simple utilities for manual checks
 # ----------------------------------------------------------------------
 
+def get_account_summary() -> Dict[str, Any]:
+    """
+    Utility for quick manual checks: fetches account summary from broker.
+    """
+    client = get_broker_client()
+    summary = client.get_account_summary()
+    return summary
 
 def print_account_summary() -> None:
     """

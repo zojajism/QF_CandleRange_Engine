@@ -1,70 +1,7 @@
-import datetime
+
+
 from decimal import Decimal
-import math
-from os import truncate
 from typing import Dict
-
-from dateutil import parser
-import public_settings as ps
-
-
-
-def format_time_simple(iso_time_str):
-    """
-    Convert ISO8601 string like '2026-02-19T01:04:00.000+00:00' to '2026-02-19 01:04'.
-    """
-    dt = parser.parse(iso_time_str)
-    return dt.strftime('%Y-%m-%d %H:%M')
-
-def _to_oanda_instrument(symbol: str) -> str:
-    """
-    Convert internal symbol like 'EUR/USD' to OANDA instrument 'EUR_USD'.
-    """
-    return symbol.replace("/", "_")
-
-fmt = lambda v, n: "N/A" if v is None else truncate(v, n)
-
-def truncate(value: float, decimals: int) -> float:
-    factor = 10 ** decimals
-    return math.trunc(value * factor) / factor
-
-def _pip_size(symbol: str) -> Decimal:
-    s = symbol.upper()
-    if "JPY" in s or "DXY" in s:
-        return Decimal("0.01")
-    return Decimal("0.0001")
-
-
-TRADING_HOURS = {
-    0: [("00:00", "23:59")],  # Monday
-    1: [("00:00", "23:59")],  # Tuesday
-    2: [("00:00", "23:59")],  # Wednesday
-    3: [("00:00", "23:59")],  # Thursday
-    4: [("00:00", "19:00")],  # Friday
-}
-
-
-def validate_trading_hours(close_time: datetime.datetime) -> bool:
-    if ps.ignore_session_ckeck == 1:
-        return True
-
-    utc_time = close_time
-    day_of_week = utc_time.weekday()  # Monday=0 ... Sunday=6
-    current_time = utc_time.time()
-
-    monday_start = datetime.time(12, 0)
-    friday_end = datetime.time(12, 0)
-
-    if day_of_week == 0:
-        return current_time >= monday_start
-
-    if day_of_week in (1, 2, 3):
-        return True
-
-    if day_of_week == 4:
-        return current_time <= friday_end
-
-    return False
 
 
 def calculate_single_position_size(
@@ -90,7 +27,7 @@ def calculate_single_position_size(
     """
     pip_size = Decimal("0.0001")
     leverage = Decimal("20")
-    rr = ps.RR_ratio
+    rr = Decimal("1.5")
 
     sl = Decimal(str(sl_pips))
     price = Decimal(str(position_price))
@@ -144,4 +81,19 @@ def calculate_single_position_size(
         "postion_size": position_size,
     }
 
+result = calculate_single_position_size(
+    sl_pips=6.95,
+    position_price=1.220140000,
+    account_balance=10000,
+    available_margine=10000,
+    risk_percent=1,
+    risk_cap_dollar=100
+)
+
+print("Result:")
+print(f"trade_skipped: {result['trade_skipped']}")
+print(f"risk_value: {result['risk_value']}")
+print(f"tp_value: {result['tp_value']}")
+print(f"margine_required: {result['margine_required']}")
+print(f"postion_size: {result['postion_size']}")
 
