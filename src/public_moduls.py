@@ -71,7 +71,7 @@ def calculate_single_position_size(
     sl_pips,
     position_price,
     account_balance,
-    available_margine,
+    available_margin,
     risk_percent,
     risk_cap_dollar,
 ) -> Dict[str, object]:
@@ -95,7 +95,7 @@ def calculate_single_position_size(
     sl = Decimal(str(sl_pips))
     price = Decimal(str(position_price))
     balance = Decimal(str(account_balance))
-    available = Decimal(str(available_margine))
+    available = Decimal(str(available_margin))
     rp = Decimal(str(risk_percent))
     cap = Decimal(str(risk_cap_dollar))
 
@@ -112,8 +112,8 @@ def calculate_single_position_size(
             "trade_skipped": True,
             "risk_value": Decimal("0.00"),
             "tp_value": Decimal("0.00"),
-            "margine_required": Decimal("0.00"),
-            "postion_size": 0,
+            "margin_required": Decimal("0.00"),
+            "position_size": 0,
         }
 
     risk_limit = max(cap, (balance * rp_fraction).quantize(Decimal("0.01")))
@@ -127,12 +127,12 @@ def calculate_single_position_size(
             "trade_skipped": True,
             "risk_value": Decimal("0.00"),
             "tp_value": Decimal("0.00"),
-            "margine_required": Decimal("0.00"),
-            "postion_size": 0,
+            "margin_required": Decimal("0.00"),
+            "position_size": 0,
         }
 
     size_decimal = Decimal(position_size)
-    margine_required = ((size_decimal * price) / leverage).quantize(Decimal("0.01"))
+    margin_required = ((size_decimal * price) / leverage).quantize(Decimal("0.01"))
     risk_value = (size_decimal * sl * pip_size).quantize(Decimal("0.01"))
     tp_value = (risk_value * rr).quantize(Decimal("0.01"))
 
@@ -140,8 +140,8 @@ def calculate_single_position_size(
         "trade_skipped": False,
         "risk_value": risk_value,
         "tp_value": tp_value,
-        "margine_required": margine_required,
-        "postion_size": position_size,
+        "margin_required": margin_required,
+        "position_size": position_size,
     }
 
 

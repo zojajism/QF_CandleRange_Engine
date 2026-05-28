@@ -89,8 +89,8 @@ def run_engine(candle_body: Dict[str, Any]):
     #=========================================================================================================================
 
     # Call engine modules to calculate engine parameters ====================================================================
-    sm.calculate_ATR(sm.timeframe)
     '''
+    sm.calculate_ATR(sm.timeframe)
     sm.calculate_MACD()
     sm.calculate_EMA(speed="fast")
     sm.calculate_EMA(speed="slow")
@@ -129,11 +129,7 @@ def run_engine(candle_body: Dict[str, Any]):
         except Exception as e:
             logger.error(f"Error in strategy signal detection: {e}")
             valid_signal = False
-
-        # We want to trade only two times per day
-        #if valid_signal:
-            #valid_signal = sm.Valid_Signal_Counter(sm.close_time)
-
+        
         if valid_signal:
             target_pips = abs(close - Decimal(TP)) * 10000
             sl_pips = abs(close - Decimal(SL)) * 10000
@@ -141,19 +137,32 @@ def run_engine(candle_body: Dict[str, Any]):
             if sl_pips <= 0:
                 logger.warning("Invalid sl_pips=%s. Skip order sizing.", sl_pips)
                 return
-            account_summary = get_account_summary()
-
-            result = pm.calculate_single_position_size(
-                    sl_pips=sl_pips,
-                    position_price=close,
-                    account_balance=account_summary.get("balance", 10000),
-                    available_margine=account_summary.get("marginAvailable", 10000),
-                    risk_percent=ps.Risk_Percent,
-                    risk_cap_dollar=ps.Risk_Cap_Dollar,
-                    )
+            
+            try:
+                account_summary = get_account_summary()
+                account = account_summary.get("account", {})
+                account_balance = Decimal(account.get("balance", 0))
+                available_margin = Decimal(account.get("marginAvailable", 0))
+            except Exception as e:
+                logger.error(f"Error in fetching account summary: {e}")
+                return
+            
+            try:
+                result = pm.calculate_single_position_size(
+                        sl_pips=sl_pips,
+                        position_price=close,
+                        account_balance=account_balance,
+                        available_margin=available_margin,
+                        risk_percent=ps.Risk_Percent,
+                        risk_cap_dollar=ps.Risk_Cap_Dollar,
+                        )
+            except Exception as e:
+                logger.error(f"Error in position sizing calculation: {e}")
+                return
+            
             trade_skipped = result["trade_skipped"]
-            order_units = result["postion_size"]
-            required_margin = result["margine_required"]
+            order_units = result["position_size"]
+            required_margin = result["margin_required"]
             actual_risk_amount = result["risk_value"]
             profit_est = result["tp_value"]
 
@@ -161,14 +170,14 @@ def run_engine(candle_body: Dict[str, Any]):
                 logger.warning(
                     f"Signal skipped! side={side}, target_pips={target_pips:.1f}, sl_pips={sl_pips:.1f}, "
                     f"order_units={order_units}, required_margin={required_margin:.2f}, risk_est={actual_risk_amount:.2f}, "
-                    f"profit_est={profit_est:.2f}, TP={TP}, SL={SL}, available_margin={account_summary.get('marginAvailable', 10000):.2f}"
+                    f"profit_est={profit_est:.2f}, TP={TP}, SL={SL}, available_margin={available_margin:.2f}"
                 )
                 return
             #------------------------------------------------
             logger.info(
                 f"Valid signal detected! side={side}, target_pips={target_pips:.1f}, sl_pips={sl_pips:.1f}, "
                 f"order_units={order_units}, required_margin={required_margin:.2f}, risk_est={actual_risk_amount:.2f}, "
-                f"profit_est={profit_est:.2f}, TP={TP}, SL={SL}, available_margin={account_summary.get('marginAvailable', 10000):.2f}"
+                f"profit_est={profit_est:.2f}, TP={TP}, SL={SL}, available_margin={available_margin:.2f}"
             )
 
 
@@ -296,8 +305,14 @@ def run_engine(candle_body: Dict[str, Any]):
                 order_info.status,            # order_status
                 order_info.exec_latency_ms,   # exec_latency_ms
                 order_info.lastTransactionID,          # lastTransactionID from OANDA response
+                actual_risk_amount,          # sl_value
+                profit_est,                  # tp_value
+                account_balance,             # balance_before
+                available_margin,            # available_margin_before
+                required_margin,             # required_margin
             ))
             _insert_signals(batch_rows_signals)
+
 
     # End of : "if all general conditions are met, then check strategy specific conditions and send order"
     else:

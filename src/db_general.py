@@ -478,8 +478,13 @@ def _insert_signals(rows: List[tuple]) -> None:
             actual_target_pips, 
             order_status,       
             exec_latency_ms,
-            open_transaction
-        ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            open_transaction,
+            sl_value,
+            tp_value,
+            balance_before,
+            available_margin_before,
+            required_margin
+        ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
     """
     try:
         conn: psycopg.Connection

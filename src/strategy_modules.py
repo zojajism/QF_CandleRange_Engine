@@ -1467,6 +1467,7 @@ def is_valid_signal_detected_3LineStrike() -> tuple[bool, str, Decimal, Decimal]
     return False, None, None, None
 
 def is_valid_signal_HTF_Range() -> tuple[bool, str, Decimal, Decimal]:
+
     key = Keys(exchange=exchange, symbol=symbol, timeframe=timeframe)
     candle = buffer_initializer.CANDLE_BUFFER.last_n(key, 2)
 
@@ -1506,16 +1507,6 @@ def is_valid_signal_HTF_Range() -> tuple[bool, str, Decimal, Decimal]:
     HTF_low = Decimal(str(HTF_Candle[0]["low"]))
     HTF_close = Decimal(str(HTF_Candle[0]["close"]))
 
-    # Skip if last candle range is too large (>= 2 ATR)
-    # or if close is too close to open (potentially weak signal)
-    '''
-    if (HTF_high - HTF_low >= ATR * Decimal("2")
-        or abs(HTF_close - HTF_open) < ATR * Decimal("0.5")):
-        return False, None, None, None
-    '''
-
-    #logger.info(f"HTF Range Check: HTF_open={HTF_open}, HTF_high={HTF_high}, HTF_low={HTF_low}, HTF_close={HTF_close}, current_open={current_open}, current_close={current_close}")
-    #logger.info(f"LTF Range Check: LTF_open={current_open}, LTF_high={current_high}, LTF_low={current_low}, LTF_close={current_close}, HTF_open={HTF_open}, HTF_high={HTF_high}, HTF_low={HTF_low}, HTF_close={HTF_close}")
     # --- Long setup ---
     if (
         current_open < current_close # the LTF candle is green
@@ -1544,7 +1535,7 @@ def is_valid_signal_HTF_Range() -> tuple[bool, str, Decimal, Decimal]:
         and current_close < HTF_low # LTF close is below HTF low
         #and HTF_open > HTF_close # the HTF candle is red
     ):
-        if ( HTF_high - HTF_low ) >= ATR * Decimal("2"):
+        if ( HTF_high - HTF_low ) >= Decimal("0.0005") * Decimal("2"):
             sl_price = HTF_high - (( HTF_high - HTF_low ) / Decimal("2"))
         else:
             sl_price = HTF_high
@@ -2141,8 +2132,7 @@ def manage_HTF():
 
 
     #Calculate Indicators for HTF candle immediately after creation
-    #calculate_ATR(runtime["htf_tf"])
-
+    calculate_ATR(runtime["htf_tf"])
     update_pivot_buffer(runtime["htf_tf"])
 
     '''
