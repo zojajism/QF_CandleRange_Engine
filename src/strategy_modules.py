@@ -1522,9 +1522,12 @@ def is_valid_signal_HTF_Range() -> tuple[bool, str, Decimal, Decimal]:
         and current_close > HTF_high # LTF close is above HTF high
         #and HTF_open < HTF_close # the HTF candle is green
     ):
-        sl_price = HTF_low + (( HTF_high - HTF_low ) / Decimal("2"))
+        if ( HTF_high - HTF_low ) >= ATR * Decimal("2"):
+            sl_price = HTF_low + (( HTF_high - HTF_low ) / Decimal("2"))
+        else:
+            sl_price = HTF_low
         sl_distance = current_close - sl_price
-        rr_target = current_close + (sl_distance * Decimal("1.5"))
+        rr_target = current_close + (sl_distance * ps.RR_ratio)
         target_price = (
             min(rr_target, recent_pivot_high)
             if recent_pivot_high is not None and recent_pivot_high > current_close
@@ -1541,9 +1544,12 @@ def is_valid_signal_HTF_Range() -> tuple[bool, str, Decimal, Decimal]:
         and current_close < HTF_low # LTF close is below HTF low
         #and HTF_open > HTF_close # the HTF candle is red
     ):
-        sl_price = HTF_high - (( HTF_high - HTF_low ) / Decimal("2"))
+        if ( HTF_high - HTF_low ) >= ATR * Decimal("2"):
+            sl_price = HTF_high - (( HTF_high - HTF_low ) / Decimal("2"))
+        else:
+            sl_price = HTF_high
         sl_distance = sl_price - current_close
-        rr_target = current_close - (sl_distance * Decimal("1.5"))
+        rr_target = current_close - (sl_distance * ps.RR_ratio)
         target_price = (
             max(rr_target, recent_pivot_low)
             if recent_pivot_low is not None and recent_pivot_low < current_close
@@ -1987,9 +1993,9 @@ def record_strategy_modules_history_HTF(timeframe: str):
     #global strategy_modules_history_rows
 
     strategy_modules_history_rows = [
-        #(close_time, symbol, timeframe, "ATR", ATR),
+        (close_time, symbol, timeframe, "ATR", ATR),
         #(close_time, symbol, timeframe, "EMA_FAST", EMA_FAST),
-        (close_time, symbol, timeframe, "EMA_SLOW", EMA_SLOW),
+        #(close_time, symbol, timeframe, "EMA_SLOW", EMA_SLOW),
         #(close_time, symbol, timeframe, "inBands", inBands),
         #(close_time, symbol, timeframe, "EMA_Slope", EMA_Slope),
         #(close_time, symbol, timeframe, "upper_band", upper_band),
@@ -1998,11 +2004,11 @@ def record_strategy_modules_history_HTF(timeframe: str):
         #(close_time, symbol, timeframe, "Bullish_eng", bullish_engulfing),
         #(close_time, symbol, timeframe, "Bearish_eng", bearish_engulfing),
         #(close_time, symbol, timeframe, "RSI", RSI),
-        (close_time, symbol, timeframe, "ADX", ADX),
+        #(close_time, symbol, timeframe, "ADX", ADX),
         #(close_time, symbol, timeframe, "CE_LONG", CE_LONG),
         #(close_time, symbol, timeframe, "CE_SHORT", CE_SHORT),
         #(close_time, symbol, timeframe, "Volume_AVG", Volume_AVG),
-        (close_time, symbol, timeframe, "HTF_candle_bio", HTF_candle_bios),
+        #(close_time, symbol, timeframe, "HTF_candle_bio", HTF_candle_bios),
     ]
     #strategy_modules_history_rows.extend(rows_to_add)
 
