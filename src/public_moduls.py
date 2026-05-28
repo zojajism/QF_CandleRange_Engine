@@ -51,20 +51,29 @@ def validate_trading_hours(close_time: datetime.datetime) -> bool:
     utc_time = close_time
     day_of_week = utc_time.weekday()  # Monday=0 ... Sunday=6
     current_time = utc_time.time()
+    current_hour = utc_time.hour
+    current_minute = utc_time.minute
+
+    # Example hour filter (UTC): allow only 06:00 to 18:59
+    # if not (6 <= current_hour <= 18):
+    #     return False
 
     monday_start = datetime.time(12, 0)
     friday_end = datetime.time(12, 0)
 
-    if day_of_week == 0:
-        return current_time >= monday_start
+    #if day_of_week == 0:
+        #return current_time >= monday_start
 
-    if day_of_week in (1, 2, 3):
-        return True
+    #if day_of_week in (1, 2, 3):
+        #return True
 
-    if day_of_week == 4:
-        return current_time <= friday_end
+    #if day_of_week == 4:
+        #return current_time <= friday_end
 
-    return False
+    if current_hour >= 20 and current_hour <= 22:
+        return False
+    
+    return True
 
 
 def calculate_single_position_size(

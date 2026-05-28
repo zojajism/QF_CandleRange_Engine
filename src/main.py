@@ -171,6 +171,7 @@ async def main():
         symbols = [str(s) for s in config_data.get("symbols", [])]
         timeframes = [str(t) for t in config_data.get("timeframes", [])]
         indicators = [str(t) for t in config_data.get("indicators", [])]  # e.g., ["ATR", "EMA_FAST", "EMA_SLOW", "inBands"]
+        HFTs = [str(t) for t in config_data.get("HTF", [])]
         ps.symbol = symbols[0]
 
         load_settings_from_db()
@@ -181,7 +182,9 @@ async def main():
         #logger.info("Indicator gap fill done.")
         
         buffers.init_candle_buffer("OANDA", symbols, timeframes)
-        #logger.info("Candle buffers initialized for OANDA symbols and timeframes.")
+        logger.info("Candle buffers initialized for OANDA symbols and timeframes.")
+        buffers.init_candle_buffer("OANDA", symbols, HFTs)
+        logger.info("Candle buffers initialized for OANDA symbols and HTFs.")
 
         buffers.init_indicator_buffer(symbols, timeframes, indicators)
         #logger.info("Indicator buffers initialized for OANDA symbols and timeframes.")
